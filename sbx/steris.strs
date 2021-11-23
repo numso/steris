@@ -1,0 +1,18 @@
+---
+title: Steris Todo List
+---
+> [ ] Features
+  > [x] Enter should move your focus to the newly created entry
+  > [x] Shift-Tab should un-indent your thing
+  > [x] Should be able to delete a thing
+  # when the line is empty and you hit backspace, delete it
+  > [x] Top Title should be centered and editable
+  > [ ] Cmd-Enter to switch to/from note mode and add notes
+> [ ] Bugs
+  > [ ] JS Error and you lose text when tabbing an existing thing
+  > [ ] If you start typing a thing, editor should go dirty immediately
+  > [ ] Opening a file should not immediately mark it as dirty
+> [ ] Long Term
+  > [ ] Dark mode
+  > [ ] All the keyboard shortcuts
+  > [ ] Drag-n-Drop items

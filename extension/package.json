@@ -1,0 +1,30 @@
+{
+  "name": "steris-vscode",
+  "displayName": "steris",
+  "description": "The steris Extension for VS Code.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "publisher": "numso",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/numso/vscode-steris"
+  },
+  "engines": {
+    "vscode": "^1.59.0"
+  },
+  "keywords": ["todo", "list"],
+  "activationEvents": ["onCustomEditor:steris.strs"],
+  "browser": "./index.js",
+  "main": "./index.js",
+  "extensionKind": ["ui", "workspace"],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "steris.strs",
+        "displayName": "steris",
+        "selector": [{ "filenamePattern": "*.strs" }]
+      }
+    ]
+  },
+  "scripts": {}
+}
