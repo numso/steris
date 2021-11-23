@@ -1,3 +1,13 @@
+import { nanoid } from 'nanoid'
+
+const newItem = () => ({
+  id: nanoid(),
+  text: '',
+  completed: false,
+  hidden: false,
+  children: []
+})
+
 export function parse (text) {
   const [, frontmatter, content] = text.split('---')
   const fm = parseFrontmatter(frontmatter)
@@ -31,7 +41,8 @@ function parseChildren (lines, nestingLevel) {
     const [first] = next.split(/[<>] \[[ x]\] /)
     if (first.length === nestingLevel) {
       if (curChild) children.push(curChild)
-      curChild = { text: next.substr(nestingLevel + 6) }
+      curChild = newItem()
+      curChild.text = next.substr(nestingLevel + 6)
       if (next[nestingLevel + 3] === 'x') curChild.completed = true
       if (next[nestingLevel] === '<') curChild.hidden = true
       lines.shift()

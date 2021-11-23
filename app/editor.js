@@ -13,6 +13,32 @@ const newItem = () => ({
   children: []
 })
 
+function focus (id) {
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${id}"]`)
+    if (el) {
+      el.focus()
+
+      if (
+        typeof window.getSelection != 'undefined' &&
+        typeof document.createRange != 'undefined'
+      ) {
+        const range = document.createRange()
+        range.selectNodeContents(el)
+        range.collapse(false)
+        const sel = window.getSelection()
+        sel.removeAllRanges()
+        sel.addRange(range)
+      } else if (typeof document.body.createTextRange != 'undefined') {
+        const textRange = document.body.createTextRange()
+        textRange.moveToElementText(el)
+        textRange.collapse(false)
+        textRange.select()
+      }
+    }
+  }, 10)
+}
+
 function ensureValid (value) {
   if (!value) value = {}
   if (!value.children) value.children = []
@@ -75,10 +101,7 @@ function reducer (draft, action) {
       } else {
         parent.children.splice(i + 1, 0, newThing)
       }
-      setTimeout(() => {
-        const el = document.querySelector(`[data-id="${newThing.id}"]`)
-        if (el) el.focus()
-      }, 10)
+      focus(newThing.id)
       break
     }
     case 'removeItem': {
@@ -93,6 +116,7 @@ function reducer (draft, action) {
       if (i === 0) return
       parent.children.splice(i, 1)
       parent.children[i - 1].children.push(item)
+      focus(item.id)
       break
     }
     case 'unindent': {
@@ -108,6 +132,7 @@ function reducer (draft, action) {
         j
       })
       grandparent.children.splice(j + 1, 0, item)
+      focus(item.id)
       break
     }
     default: {
