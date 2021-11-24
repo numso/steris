@@ -7,6 +7,7 @@ import * as parser from './parser'
 const vscode = window.acquireVsCodeApi()
 
 function App () {
+  const ref = React.useRef(window.currentFile)
   let value = null
   try {
     value = parser.parse(window.currentFile)
@@ -17,6 +18,8 @@ function App () {
 
   const onChange = React.useCallback(newValue => {
     const text = parser.stringify(newValue)
+    if (ref.current === text) return
+    ref.current = text
     vscode.postMessage({ type: 'editorUpdated', text })
   }, [])
 

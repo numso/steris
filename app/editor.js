@@ -1,5 +1,4 @@
 import { useImmerReducer } from 'use-immer'
-import { original } from 'immer'
 import * as _ from 'lodash'
 import { nanoid } from 'nanoid'
 import React from 'react'
@@ -13,28 +12,24 @@ const newItem = () => ({
   children: []
 })
 
-function focus (id) {
+function focus (id, last) {
   setTimeout(() => {
     const el = document.querySelector(`[data-id="${id}"]`)
-    if (el) {
-      el.focus()
-
-      if (
-        typeof window.getSelection != 'undefined' &&
-        typeof document.createRange != 'undefined'
-      ) {
-        const range = document.createRange()
-        range.selectNodeContents(el)
-        range.collapse(false)
-        const sel = window.getSelection()
-        sel.removeAllRanges()
-        sel.addRange(range)
-      } else if (typeof document.body.createTextRange != 'undefined') {
-        const textRange = document.body.createTextRange()
-        textRange.moveToElementText(el)
-        textRange.collapse(false)
-        textRange.select()
-      }
+    if (!el) return
+    el.focus()
+    if (!last) return
+    if (window.getSelection && document.createRange) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      range.collapse(false)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+    } else if (document.body.createTextRange) {
+      const textRange = document.body.createTextRange()
+      textRange.moveToElementText(el)
+      textRange.collapse(false)
+      textRange.select()
     }
   }, 10)
 }
@@ -66,8 +61,32 @@ function findParentById (item, id, parent, i) {
   return null
 }
 
+function findNext (draft, id) {
+  const item = findItemById(draft, id)
+  if (!item.hidden && item.children.length) return item.children[0]
+  let i
+  let thing = item
+  while (true) {
+    ;[thing, i] = findParentById(draft, thing.id)
+    if (i < thing.children.length - 1) return thing.children[i + 1]
+    if (thing.id === 'ROOT') return null
+  }
+}
+
+function findPrev (draft, id) {
+  const [parent, i] = findParentById(draft, id)
+  if (i === 0) return parent.id === 'ROOT' ? null : parent
+  let thing = parent.children[i - 1]
+  while (true) {
+    if (!thing.hidden && thing.children.length) {
+      thing = thing.children[thing.children.length - 1]
+    } else {
+      return thing
+    }
+  }
+}
+
 function reducer (draft, action) {
-  // console.log(action)
   switch (action.type) {
     case 'updateTitle': {
       draft.title = action.value
@@ -76,6 +95,16 @@ function reducer (draft, action) {
     case 'toggleHidden': {
       const item = findItemById(draft, action.id)
       item.hidden = !item.hidden
+      break
+    }
+    case 'hide': {
+      const item = findItemById(draft, action.id)
+      if (item.children.length) item.hidden = true
+      break
+    }
+    case 'show': {
+      const item = findItemById(draft, action.id)
+      item.hidden = false
       break
     }
     case 'toggleCompleted': {
@@ -124,15 +153,19 @@ function reducer (draft, action) {
       if (parent.id === 'ROOT') return
       parent.children.splice(i, 1)
       const [grandparent, j] = findParentById(draft, parent.id)
-      console.log({
-        item: original(item),
-        parent: original(parent),
-        grandparent: original(grandparent),
-        i,
-        j
-      })
       grandparent.children.splice(j + 1, 0, item)
       focus(item.id)
+      break
+    }
+    case 'focusNext': {
+      const item = findNext(draft, action.id)
+      if (item) focus(item.id)
+      break
+    }
+    case 'focusPrev': {
+      const item = findPrev(draft, action.id)
+      if (item) focus(item.id)
+      else document.getElementById('title').focus()
       break
     }
     default: {
@@ -149,7 +182,13 @@ export default ({ value, onChange }) => {
   return (
     <Container>
       <Title
+        id='title'
         value={state.title}
+        onKeyDown={e => {
+          if (e.key !== 'ArrowDown') return
+          e.preventDefault()
+          document.querySelector('[data-id]').focus()
+        }}
         onChange={e => dispatch({ type: 'updateTitle', value: e.target.value })}
       />
       <BulletPoint root item={state} dispatch={dispatch} />
@@ -168,7 +207,7 @@ const Title = styled.input`
   padding: 0.5em 0 0;
 `
 
-function BulletPoint ({ root, item, dispatch }) {
+function BulletPoint ({ root, item, dispatch, parentCompleted }) {
   const { id } = item
   return (
     <BulletPointWrapper>
@@ -201,11 +240,17 @@ function BulletPoint ({ root, item, dispatch }) {
               id={id}
               value={item.text}
               completed={item.completed}
+              parentCompleted={parentCompleted}
               onChange={value => dispatch({ type: 'update', id, value })}
-              onEnter={() => dispatch({ type: 'addItem', id })}
-              onTab={() => dispatch({ type: 'indent', id })}
-              onShiftTab={() => dispatch({ type: 'unindent', id })}
-              onDelete={() => dispatch({ type: 'removeItem', id })}
+              onKeyDown={e => {
+                const key = [e.metaKey && 'Cmd', e.shiftKey && 'Shift', e.key]
+                  .filter(Boolean)
+                  .join('-')
+                const event = keyMap[key]
+                if (!event) return
+                e.preventDefault()
+                dispatch({ type: event, id })
+              }}
             />
           </TopItem>
           {item.note && (
@@ -220,8 +265,13 @@ function BulletPoint ({ root, item, dispatch }) {
       )}
       {!!item.children?.length && !item.hidden && (
         <ChildrenHolder root={root}>
-          {_.map(item.children, (item, i) => (
-            <BulletPoint key={item.id} item={item} dispatch={dispatch} />
+          {_.map(item.children, (childItem, i) => (
+            <BulletPoint
+              key={childItem.id}
+              item={childItem}
+              dispatch={dispatch}
+              parentCompleted={parentCompleted || item.completed}
+            />
           ))}
         </ChildrenHolder>
       )}
@@ -229,63 +279,30 @@ function BulletPoint ({ root, item, dispatch }) {
   )
 }
 
-function ContentEditable ({
-  id,
-  value,
-  onChange,
-  onEnter,
-  onTab,
-  onShiftTab,
-  onDelete,
-  ...rest
-}) {
-  const ref = React.useRef()
-  React.useEffect(() => {
-    if (!ref.current) return
-    let value
-    const focus = e => (value = e.target.innerHTML)
-    const blur = e => {
-      if (!ref.current) return
-      if (value !== e.target.innerHTML) {
-        onChange(e.target.innerHTML)
-      }
-    }
-    ref.current.addEventListener('focus', focus)
-    ref.current.addEventListener('blur', blur)
-    return () => {
-      ref.current.removeEventListener('focus', focus)
-      ref.current.removeEventListener('blur', blur)
-    }
-  }, [])
+function ContentEditable ({ id, value, onChange, ...rest }) {
+  const ref = React.useRef(value)
   return (
     <StyledContentEditable
       data-id={id}
-      ref={ref}
-      onKeyDown={e => {
-        if (!rest.notes) {
-          // console.log(e)
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            return onEnter()
-          }
-          if (e.shiftKey && e.key === 'Tab') {
-            e.preventDefault()
-            return onShiftTab()
-          }
-          if (e.key === 'Tab') {
-            e.preventDefault()
-            return onTab()
-          }
-          if (e.key === 'Backspace' && !e.target.innerHTML) {
-            e.preventDefault()
-            return onDelete()
-          }
-        }
-      }}
-      dangerouslySetInnerHTML={{ __html: value }}
+      onInput={e => onChange(e.target.innerHTML)}
+      dangerouslySetInnerHTML={{ __html: ref.current }}
       {...rest}
     />
   )
+}
+
+const keyMap = {
+  Enter: 'addItem',
+  Tab: 'indent',
+  'Shift-Tab': 'unindent',
+  // Backspace: 'removeItem', only if !e.target.innerHTML
+  'Cmd-Shift-Backspace': 'removeItem',
+  ArrowDown: 'focusNext',
+  ArrowUp: 'focusPrev',
+  'Cmd-Enter': 'toggleCompleted',
+  'Cmd-ArrowDown': 'show',
+  'Cmd-ArrowUp': 'hide',
+  'Shift-Enter': 'enterNoteMode'
 }
 
 const StyledContentEditable = styled.div.attrs({ contentEditable: true })`
@@ -294,7 +311,7 @@ const StyledContentEditable = styled.div.attrs({ contentEditable: true })`
   color: ${props =>
     props.notes
       ? 'rgb(134, 140, 144)'
-      : props.completed
+      : props.completed || props.parentCompleted
       ? 'rgb(183, 188, 191)'
       : 'rgb(42, 49, 53)'};
   outline: none;
@@ -357,25 +374,3 @@ const ChildrenHolder = styled.div`
   border-left: 1px solid;
   border-color: ${props => (props.root ? 'transparent' : 'rgb(236, 238, 240)')};
 `
-
-// KEEP TRACK OF THIS TODO LIST USING THIS TODO LIST
-
-// vscode extension
-
-// drag n drop
-
-// LeftArrow, RightArrow, UpArrrow, DownArrow
-// Tab
-// Shift-Tab
-// Enter
-// Shift-Enter
-// Backspace (at beginning)
-// Delete (at end)
-// Shift-Backspace (at beginning)
-// Shift-Delete (at end)
-// Ctrl-Enter
-// Ctrl-Shift-Enter
-// Ctrl-Shift-Backspace
-// Ctrl-Shift-Delete
-// Ctrl-Shift-Tab
-// Ctrl-Tab

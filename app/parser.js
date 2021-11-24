@@ -38,7 +38,7 @@ function parseChildren (lines, nestingLevel) {
     const next = lines[0]
     if (!next) break
     // TODO:: Ensure this starts with spaces
-    const [first] = next.split(/[<>] \[[ x]\] /)
+    const [first] = next.split(/[<>] \[[ x]\]/)
     if (first.length === nestingLevel) {
       if (curChild) children.push(curChild)
       curChild = newItem()
@@ -69,12 +69,12 @@ function parseChildren (lines, nestingLevel) {
 }
 
 export function stringify (data) {
-  const { children, ...fm } = data
+  const { children, id, ...fm } = data
   const fmStr = Object.entries(fm)
     .map(([key, value]) => `${key}: ${value}`)
     .join('\n')
   const content = stringifyContent(children, 0)
-  return `---\n${fmStr}\n---\n${content}`
+  return `---\n${fmStr}\n---\n${content}\n`
 }
 
 function stringifyContent (data, nestingLevel) {

@@ -8,11 +8,37 @@ title: Steris Todo List
   # when the line is empty and you hit backspace, delete it
   > [x] Top Title should be centered and editable
   > [ ] Cmd-Enter to switch to/from note mode and add notes
+  > [x] All children of completed items should be greyed out
 > [ ] Bugs
-  > [ ] JS Error and you lose text when tabbing an existing thing
-  > [ ] If you start typing a thing, editor should go dirty immediately
-  > [ ] Opening a file should not immediately mark it as dirty
+  > [x] JS Error and you lose text when tabbing an existing thing
+  > [x] If you start typing a thing, editor should go dirty immediately
+  > [x] Opening a file should not immediately mark it as dirty
+  > [ ] Focus
+    > [ ] When deleting an item, focus disappears
+    > [ ] Indenting/Unindenting should preserve focus location
 > [ ] Long Term
   > [ ] Dark mode
   > [ ] All the keyboard shortcuts
   > [ ] Drag-n-Drop items
+> [ ] VSCode Extension
+  > [ ] file icon
+  > [ ] autosave
+  > [ ] build and bundle the editor
+> [ ] Keyboard Shortcuts
+  > [ ] Inside Todo Item
+    > [ ] LeftArrow
+    > [ ] RightArrow
+    > [x] UpArrow
+    > [x] DownArrow
+    > [x] Tab = Indent
+    > [x] Shift-Tab = Unindent
+    > [ ] Command-Shift-Up = Move Item Up
+    > [ ] Command-Shift-Down = Move Item Down
+    > [x] Command-Shift-Backspace = Delete Item
+    > [x] Enter
+    > [ ] Backspace
+    > [ ] Delete
+  > [ ] Inside Note
+  > [ ] Both
+    > [x] Command-Enter = Toggle Complete
+    > [ ] Shift-Enter = Toggle Note Mode
